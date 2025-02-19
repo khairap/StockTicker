@@ -12,6 +12,11 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader()
             .AllowCredentials()); // Required for WebSockets
 });
+
+builder.Logging.ClearProviders(); // Remove default providers
+builder.Logging.AddConsole(); // Add console logging
+builder.Logging.AddDebug();   // Add debug logging
+
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<StockService>();
