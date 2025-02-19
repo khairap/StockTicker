@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import * as signalR from "@microsoft/signalr";
 
-const API_BASE_URL = "http://localhost:5000"; // Update with your API URL
+const API_BASE_URL = "http://localhost:5000"; 
 
 const StockTicker = () => {
   const [stockSymbol, setStockSymbol] = useState("");
@@ -9,47 +9,46 @@ const StockTicker = () => {
   const [connection, setConnection] = useState(null);
 
   useEffect(() => {
-    console.log("Initializing SignalR connection...");
-  
     const hubConnection = new signalR.HubConnectionBuilder()
-    .withUrl("http://localhost:5000/stockHub", {
-        withCredentials: true, // ✅ Required for CORS
-        transport: signalR.HttpTransportType.WebSockets // ✅ Force WebSockets
-    })
-    .configureLogging(signalR.LogLevel.Information) // ✅ Enable Debug Logs
-    .withAutomaticReconnect()
-    .build();
-  
-    hubConnection
-      .start()
+      .withUrl(`${API_BASE_URL}/stockHub`, {
+        withCredentials: true, 
+        transport: signalR.HttpTransportType.WebSockets 
+      })
+      .configureLogging(signalR.LogLevel.Information)
+      .withAutomaticReconnect()
+      .build();
+
+    hubConnection.start()
       .then(() => {
-        console.log("Connected to SignalR!");
+        console.log("Connected to SignalR");
         setConnection(hubConnection);
       })
-      .catch((err) => console.error("Error connecting to SignalR:", err));
-  
+      .catch(err => console.error("Error connecting to SignalR:", err));
+
     return () => {
       if (hubConnection) {
-        console.log("Stopping SignalR connection...");
         hubConnection.stop();
       }
     };
   }, []);
-  
 
   useEffect(() => {
-    console.log("StockUpdate...");
     if (!connection) return;
 
     connection.on("ReceiveStockUpdate", (symbol, price) => {
-      setSubscribedStocks((prev) => ({
+      setSubscribedStocks(prev => ({
         ...prev,
         [symbol]: price.toFixed(2),
       }));
     });
 
+    connection.on("NewStockAdded", (symbol) => {
+      console.log(`New Stock Added: ${symbol}`);
+    });
+
     return () => {
       connection.off("ReceiveStockUpdate");
+      connection.off("NewStockAdded");
     };
   }, [connection]);
 
@@ -60,19 +59,19 @@ const StockTicker = () => {
 
     if (!subscribedStocks[symbol]) {
       await connection.invoke("Subscribe", symbol);
-      setSubscribedStocks((prev) => ({
+      setSubscribedStocks(prev => ({
         ...prev,
         [symbol]: "Fetching...",
       }));
     }
-    setStockSymbol(""); // Clear input
+    setStockSymbol(""); 
   };
 
   const unsubscribeFromStock = async (symbol) => {
     if (!connection) return;
 
     await connection.invoke("Unsubscribe", symbol);
-    setSubscribedStocks((prev) => {
+    setSubscribedStocks(prev => {
       const updatedStocks = { ...prev };
       delete updatedStocks[symbol];
       return updatedStocks;
@@ -124,37 +123,10 @@ const StockTicker = () => {
 };
 
 const styles = {
-  container: {
-    textAlign: "center",
-    padding: "20px",
-    fontFamily: "Arial, sans-serif",
-  },
-  input: {
-    padding: "10px",
-    fontSize: "16px",
-    width: "200px",
-    marginRight: "10px",
-  },
-  button: {
-    padding: "10px",
-    fontSize: "14px",
-    cursor: "pointer",
-    margin: "5px",
-  },
-  table: {
-    width: "100%",
-    marginTop: "20px",
-    borderCollapse: "collapse",
-  },
-  th: {
-    borderBottom: "1px solid black",
-    padding: "10px",
-  },
-  td: {
-    borderBottom: "1px solid #ddd",
-    padding: "10px",
-    textAlign: "center",
-  },
+  container: { textAlign: "center", padding: "20px", fontFamily: "Arial, sans-serif" },
+  input: { padding: "10px", fontSize: "16px", width: "200px", marginRight: "10px" },
+  button: { padding: "10px", fontSize: "14px", cursor: "pointer", margin: "5px" },
+  table: { width: "100%", marginTop: "20px", borderCollapse: "collapse" },
 };
 
 export default StockTicker;
