@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 [ApiController]
 [Route("api/stocks")]
@@ -15,39 +16,43 @@ public class StockController : ControllerBase
         _logger = logger;
     }
 
+    /// <summary>
+    /// Get the current real-time stock price from Yahoo Finance.
+    /// </summary>
     [HttpGet("{symbol}")]
-    public IActionResult GetStockPrice(string symbol)
+    public async Task<IActionResult> GetStockPrice(string symbol)
     {
-        _logger.LogInformation("Received request to get price for {StockSymbol}", symbol);
-        decimal price = _stockService.GetStockPrice(symbol);
-        if (price == 0) 
-        {
-            _logger.LogWarning("Stock {StockSymbol} not found.", symbol);
-            return NotFound($"Stock '{symbol}' not found.");
-        }
+        _logger.LogInformation("Fetching real-time price for {StockSymbol}", symbol);
+        decimal price = await _stockService.GetStockPriceAsync(symbol);
+        if (price == 0) return NotFound($"Stock '{symbol}' not found or failed to fetch.");
         return Ok(new { Symbol = symbol, Price = price });
     }
 
+    /// <summary>
+    /// Get all subscribed stocks.
+    /// </summary>
     [HttpGet]
     public IActionResult GetAllStocks()
     {
-        _logger.LogInformation("Received request to get all stocks.");
+        _logger.LogInformation("Fetching all stocks");
         var stocks = new List<object>();
         foreach (var symbol in _stockService.GetAllStockSymbols())
         {
-            stocks.Add(new { Symbol = symbol, Price = _stockService.GetStockPrice(symbol) });
+            stocks.Add(new { Symbol = symbol });
         }
         return Ok(stocks);
     }
 
+    /// <summary>
+    /// Add a new stock symbol.
+    /// </summary>
     [HttpPost]
-    public IActionResult AddStock([FromBody] string stockSymbol)
+    public async Task<IActionResult> AddStock([FromBody] string stockSymbol)
     {
-        _logger.LogInformation("Received request to add stock: {StockSymbol}", stockSymbol);
-        if (string.IsNullOrWhiteSpace(stockSymbol)) return BadRequest("Stock symbol is required.");
+        if (string.IsNullOrWhiteSpace(stockSymbol)) return BadRequest("Stock symbol required.");
 
         stockSymbol = stockSymbol.ToUpper();
-        if (_stockService.AddStock(stockSymbol))
+        if (await _stockService.AddStock(stockSymbol ))
         {
             return CreatedAtAction(nameof(GetStockPrice), new { symbol = stockSymbol }, new { Symbol = stockSymbol, Message = "Stock added successfully." });
         }
@@ -55,33 +60,17 @@ public class StockController : ControllerBase
         return Conflict($"Stock '{stockSymbol}' already exists.");
     }
 
-    [HttpPut("{symbol}")]
-    public IActionResult UpdateStockPrice(string symbol, [FromBody] decimal newPrice)
-    {
-        _logger.LogInformation("Received request to update price for {StockSymbol} to {Price}", symbol, newPrice);
-        if (newPrice <= 0) return BadRequest("Price must be greater than zero.");
-
-        symbol = symbol.ToUpper();
-        if (_stockService.UpdateStockPrice(symbol, newPrice))
-        {
-            return Ok(new { Symbol = symbol, Price = newPrice, Message = "Stock price updated successfully." });
-        }
-
-        _logger.LogWarning("Stock {StockSymbol} not found for update.", symbol);
-        return NotFound($"Stock '{symbol}' not found.");
-    }
-
+    /// <summary>
+    /// Delete a stock symbol.
+    /// </summary>
     [HttpDelete("{symbol}")]
     public IActionResult DeleteStock(string symbol)
     {
-        _logger.LogInformation("Received request to delete stock: {StockSymbol}", symbol);
         symbol = symbol.ToUpper();
         if (_stockService.DeleteStock(symbol))
         {
             return Ok(new { Symbol = symbol, Message = "Stock deleted successfully." });
         }
-
-        _logger.LogWarning("Stock {StockSymbol} not found for deletion.", symbol);
         return NotFound($"Stock '{symbol}' not found.");
     }
 }

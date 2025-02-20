@@ -14,7 +14,7 @@ public class StockHub : Hub
     {
         stockSymbol = stockSymbol.ToUpper();
 
-        if (_stockService.AddStock(stockSymbol)) // ✅ Dynamically add stock if not exists
+        if (await _stockService.AddStock(stockSymbol)) // ✅ Dynamically add stock if not exists
         {
             await Clients.All.SendAsync("NewStockAdded", stockSymbol);
         }

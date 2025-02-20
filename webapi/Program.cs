@@ -16,7 +16,7 @@ builder.Services.AddCors(options =>
 builder.Logging.ClearProviders(); // Remove default providers
 builder.Logging.AddConsole(); // Add console logging
 builder.Logging.AddDebug();   // Add debug logging
-
+builder.Services.AddHttpClient();
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<StockService>();
