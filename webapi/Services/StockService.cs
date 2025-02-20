@@ -36,7 +36,7 @@ public class StockService
             }
         }
 
-        decimal freshPrice = await FetchStockPriceFromYahoo(stockSymbol);
+        decimal freshPrice = await FetchStockPriceFromTwelveData(stockSymbol);
         if (freshPrice > 0)
         {
             _stockCache[stockSymbol] = (freshPrice, DateTime.UtcNow);

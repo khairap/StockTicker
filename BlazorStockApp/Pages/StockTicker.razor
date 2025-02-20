@@ -1,0 +1,73 @@
+@page "/stock-ticker"
+@inject BlazorStockApp.Services.StockService StockService
+
+<h3>Stock Ticker</h3>
+
+<!-- Input for stock symbol -->
+<input @bind="StockSymbol" placeholder="Enter Stock Symbol" />
+<button @onclick="SubscribeToStock">Subscribe</button>
+
+@if (StockPrices.Count == 0)
+{
+    <p>Loading stocks...</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Price</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var stock in StockPrices)
+            {
+                <tr>
+                    <td>@stock.Key</td>
+                    <td>@stock.Value.ToString("C")</td>
+                    <td><button @onclick="() => UnsubscribeFromStock(stock.Key)">Unsubscribe</button></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private string StockSymbol = ""; // Input field binding
+    private Dictionary<string, decimal> StockPrices = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        StockService.OnStockUpdated += (symbol, price) =>
+        {
+            StockPrices[symbol] = price;
+            InvokeAsync(StateHasChanged); // Force UI Update
+        };
+
+        var stocks = await StockService.GetAllStocksAsync();
+        foreach (var (symbol, price) in stocks)
+        {
+            StockPrices[symbol] = price;
+        }
+    }
+
+    private async Task SubscribeToStock()
+    {
+        if (!string.IsNullOrWhiteSpace(StockSymbol))
+        {
+            await StockService.SubscribeToStock(StockSymbol);
+            StockPrices[StockSymbol] = 0;
+            StockSymbol = ""; // Clear input field
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task UnsubscribeFromStock(string symbol)
+    {
+        await StockService.UnsubscribeFromStock(symbol);
+        StockPrices.Remove(symbol);
+        InvokeAsync(StateHasChanged);
+    }
+}

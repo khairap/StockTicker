@@ -7,7 +7,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
         builder => builder
-            .WithOrigins("http://localhost:3000") // Allow React frontend
+            .WithOrigins("http://localhost:3000", "http://localhost:5174", "http://localhost:4200") // Allow React frontend
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials()); // Required for WebSockets
